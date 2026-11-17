@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Commuting Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* One visual world, matching the lecture slides: white page, plum ink, crimson/teal/orange accents.
+     Layout: controls + score on top, scatter | map side by side, misses below, then the explanation. */
+  --ink: #58355E;
+  --muted: #7A6A7E;
+  --crimson: #EC0B43;
+  --teal: #0F8B8D;
+  --orange: #EC9A29;
+  --lilac: #F3EFF4;
+  --line: #E3DAE5;
+  --bg: #FFFFFF;
+  --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --body: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45; }
+main { max-width: 1280px; margin: 0 auto; padding: 24px clamp(16px, 3vw, 32px) 64px; display: grid; gap: 20px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(26px, 3.2vw, 36px); font-weight: 700; }
+h2 { font-size: 20px; font-weight: 700; }
+h3 { font-size: 16px; font-weight: 700; }
+p { margin: 0; }
+.sub { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+header { display: grid; gap: 6px; }
+
+.steps { display: flex; flex-wrap: wrap; gap: 8px; }
+.step { background: var(--lilac); border-radius: 999px; padding: 6px 14px; font-size: 14px; }
+.step b { color: var(--crimson); margin-right: 4px; }
+
+.panel { border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+
+/* controls */
+.controls { display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: center; background: var(--lilac); border: none; }
+.seg { display: inline-flex; background: #fff; border-radius: 999px; padding: 4px; gap: 4px; }
+.seg button { font: inherit; font-weight: 600; border: 0; background: transparent; color: var(--ink); padding: 8px 18px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.seg.small button { padding: 4px 12px; font-size: 14px; }
+.seg button:disabled { opacity: .35; cursor: default; }
+.seg button:focus-visible, .btn:focus-visible, input[type=range]:focus-visible, select:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.sliders { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 16px; }
+.slider { display: grid; gap: 2px; }
+.slider label { display: flex; justify-content: space-between; font-weight: 600; }
+.slider label span:last-child { font-variant-numeric: tabular-nums; color: var(--crimson); }
+.slider small { color: var(--muted); font-size: 12px; }
+input[type=range] { width: 100%; accent-color: var(--crimson); }
+.sliders.off { opacity: .35; pointer-events: none; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 14px; font-weight: 600; border: 1.5px solid var(--ink); background: #fff; color: var(--ink); padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+.btn.primary, .btn.active { background: var(--ink); color: #fff; }
+.btn:disabled { opacity: .35; cursor: default; }
+.score { text-align: right; min-width: 170px; }
+.score .big { font-family: var(--display); font-size: 44px; font-weight: 700; line-height: 1; color: var(--crimson); font-variant-numeric: tabular-nums; }
+.score .lbl { font-size: 13px; color: var(--muted); }
+.bar { height: 6px; background: #fff; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.bar i { display: block; height: 100%; background: var(--crimson); width: 0; transition: width .2s; }
+.formula { font-size: 14px; color: var(--muted); grid-column: 1 / -1; }
+.formula b { color: var(--ink); font-weight: 600; }
+
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+canvas { width: 100%; display: block; }
+#scatterWrap { position: relative; }
+#tip { position: absolute; pointer-events: none; background: var(--ink); color: #fff; font-size: 13px; padding: 6px 10px; border-radius: 6px; white-space: nowrap; display: none; z-index: 2; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 18px; height: 0; border-top: 3px solid var(--teal); display: inline-block; }
+.sw.pred { border-top: 3px solid var(--crimson); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; background: var(--ink); opacity: .45; }
+
+svg#map { width: 100%; aspect-ratio: 1.15; height: auto; display: block; background: #FBFAFC; border-radius: 8px; }
+svg#map line, svg#map path { vector-effect: non-scaling-stroke; }
+svg#map path.m { fill: var(--lilac); stroke: #fff; stroke-width: 1; cursor: pointer; }
+svg#map path.m:hover { fill: #E1D5E4; }
+svg#map path.m.sel { fill: #F9D3DD; stroke: var(--crimson); stroke-width: 1.6; }
+select { font: inherit; padding: 4px 8px; border-radius: 8px; border: 1.5px solid var(--ink); color: var(--ink); background: #fff; }
+
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+th { font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--lilac); }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.chip.low { background: #FCEBCF; color: #8A5306; }
+.chip.high { background: #FBD6DF; color: #A1062D; }
+.chip.ok { background: #D5EEEE; color: #0B5F60; }
+.tblwrap { overflow-x: auto; }
+
+.about { display: grid; gap: 18px; background: #FBFAFC; border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.downloads { margin-top: 6px; display: grid; gap: 6px; }
+details.code { display: grid; gap: 8px; }
+details.code summary { cursor: pointer; font-weight: 600; color: var(--crimson); }
+details.code pre { max-height: 360px; overflow: auto; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.4; margin: 8px 0 0; }
+.about-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 40px; }
+.about section { display: grid; gap: 8px; max-width: 68ch; }
+.about ul, .about ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.eq { font-family: "Times New Roman", serif; font-style: italic; font-size: 17px; background: var(--lilac); padding: 6px 10px; border-radius: 6px; display: inline-block; }
+a { color: var(--crimson); }
+
+@media (max-width: 900px) {
+  .controls { grid-template-columns: 1fr; }
+  .score { text-align: left; }
+  .two, .about-grid { grid-template-columns: 1fr; }
+  .sliders { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p style="margin:0 0 .4rem;font-size:.9rem"><a href="../" style="color:#8A7A8D">← Lecture page</a></p>
+    <h1>Commuting playground: gravity vs radiation</h1>
+    <p class="sub">Where do people who live in one Danish municipality go to work? 1.41 million commuters between 98 municipalities in 2024, and two models that try to predict them.</p>
+  </header>
+
+  <section class="about" aria-label="About this playground">
+    <div class="about-grid">
+      <section>
+        <h2>The data</h2>
+        <ul>
+          <li><b>Source:</b> Statistics Denmark, StatBank table <a href="https://www.statbank.dk/PEND100">PEND100</a>: employed people at the end of November 2024, by municipality where they live and municipality where they work.</li>
+          <li><b>98 municipalities</b> (the tiny island of Christiansø is left out), 3.13 million employed people.</li>
+          <li><b>55% work in their own municipality.</b> They are not modelled: the models predict the <b>1.41 million</b> people who commute to another municipality, over 9,506 pairs. 8,427 pairs have at least one commuter; the others are zero.</li>
+          <li><b>Masses:</b> <i>m<sub>i</sub></i> = employed people living in <i>i</i>, <i>m<sub>j</sub></i> = jobs in <i>j</i>. Both are totals of the same table.</li>
+          <li><b>Distance:</b> straight-line distance in km between the geographic centres of the two municipalities, from open municipality boundaries (<a href="https://github.com/magnuslarsen/geoJSON-Danish-municipalities">geoJSON-Danish-municipalities</a>).</li>
+        </ul>
+        <div class="downloads">
+          <h3>Download the data and the code</h3>
+          <ul>
+            <li><a href="flows.csv" target="_blank" rel="noopener">flows.csv</a>: origin, destination, commuters (also by sex), 98 × 98 pairs</li>
+            <li><a href="municipalities.csv" target="_blank" rel="noopener">municipalities.csv</a>: workers living, jobs, coordinates of the centre</li>
+            <li><a href="distances.csv" target="_blank" rel="noopener">distances.csv</a>: distance in km for every pair</li>
+          </ul>
+          <details class="code">
+            <summary>Show the Python code that reproduces this page</summary>
+            <p class="sub" style="font-size:13px">Save it as <b>mobility_models.py</b> next to the three CSV files. It needs pandas, numpy, matplotlib and statsmodels, and opens as a notebook in VS Code or Jupyter (the <code># %%</code> lines mark the cells).</p>
+            <button class="btn" id="bCopy" type="button">Copy code</button> <span id="copyMsg" class="sub" style="font-size:13px"></span>
+            <pre><code id="pycode"># %% [markdown]
+# # Modelling commuting in Denmark: gravity vs radiation
+#
+# This notebook reproduces everything in the **Commuting Playground**:
+#
+# 1. load the data (commuting flows, municipalities, distances)
+# 2. the **gravity model**, with Zipf&#x27;s parameters and with a Poisson regression fit
+# 3. the **radiation model**, which has no parameters
+# 4. the score (**CPC**), the observed-vs-predicted plot and the biggest misses
+#
+# Data: Statistics Denmark, table PEND100 (2024). You need `pandas`, `numpy`, `matplotlib` and `statsmodels`.
+
+# %%
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import statsmodels.api as sm
+
+flows = pd.read_csv(&#x27;flows.csv&#x27;)                  # origin, destination, commuters (98 x 98 pairs)
+mun = pd.read_csv(&#x27;municipalities.csv&#x27;)           # workers_living, jobs, lon, lat
+dist = pd.read_csv(&#x27;distances.csv&#x27;)               # distance_km between centres
+flows.head()
+
+# %% [markdown]
+# ## 1. One table with everything we need
+#
+# We keep only flows **between different municipalities** (people working in their own municipality are not modelled), and attach to each pair:
+# - `m_i`: employed people living in the origin
+# - `m_j`: jobs in the destination
+# - `d`: distance in km
+
+# %%
+df = flows[flows.origin != flows.destination].merge(
+    dist[[&#x27;origin&#x27;, &#x27;destination&#x27;, &#x27;distance_km&#x27;]], on=[&#x27;origin&#x27;, &#x27;destination&#x27;])
+df = df.merge(mun[[&#x27;municipality&#x27;, &#x27;workers_living&#x27;]].rename(columns={&#x27;municipality&#x27;: &#x27;origin&#x27;, &#x27;workers_living&#x27;: &#x27;m_i&#x27;}), on=&#x27;origin&#x27;)
+df = df.merge(mun[[&#x27;municipality&#x27;, &#x27;jobs&#x27;]].rename(columns={&#x27;municipality&#x27;: &#x27;destination&#x27;, &#x27;jobs&#x27;: &#x27;m_j&#x27;}), on=&#x27;destination&#x27;)
+df = df.rename(columns={&#x27;distance_km&#x27;: &#x27;d&#x27;, &#x27;commuters&#x27;: &#x27;T&#x27;})
+print(len(df), &#x27;pairs,&#x27;, (df[&#x27;T&#x27;] &gt; 0).sum(), &#x27;with at least one commuter,&#x27;, df[&#x27;T&#x27;].sum(), &#x27;commuters&#x27;)
+df[[&#x27;origin&#x27;, &#x27;destination&#x27;, &#x27;T&#x27;, &#x27;m_i&#x27;, &#x27;m_j&#x27;, &#x27;d&#x27;]].head()
+
+# %% [markdown]
+# ## 2. The score: common part of commuters (CPC)
+#
+# $$\text{CPC} = \frac{2 \sum \min(T^{obs}, T^{pred})}{\sum T^{obs} + \sum T^{pred}}$$
+#
+# The share of commuters the model puts in the right place: 1 is perfect, 0 is nothing right.
+
+# %%
+def cpc(obs, pred):
+    return 2 * np.minimum(obs, pred).sum() / (obs.sum() + pred.sum())
+
+# %% [markdown]
+# ## 3. Gravity model
+#
+# $$T_{ij} = K \, m_i^{\alpha} \, m_j^{\beta} \, d_{ij}^{-\gamma}$$
+#
+# `K` is set so that the model predicts the right total number of commuters.
+
+# %%
+def gravity(df, alpha, beta, gamma):
+    raw = df.m_i**alpha * df.m_j**beta * df.d**(-gamma)
+    return raw * df[&#x27;T&#x27;].sum() / raw.sum()        # K: match the total
+
+df[&#x27;zipf&#x27;] = gravity(df, 1, 1, 1)
+print(&#x27;Zipf (alpha = beta = gamma = 1): CPC =&#x27;, round(cpc(df[&#x27;T&#x27;], df.zipf), 3))
+
+# %% [markdown]
+# ### Fitting α, β, γ with a Poisson regression
+#
+# Take logs and the gravity model is linear in its parameters:
+#
+# $$\log T_{ij} = \log K + \alpha \log m_i + \beta \log m_j - \gamma \log d_{ij}$$
+#
+# Two ways to fit it:
+#
+# - **Linear regression on log T** (ordinary least squares). Simple, but it cannot use pairs with zero commuters (log 0 is −∞), and it treats a miss of 5 vs 50 commuters as just as bad as 5,000 vs 50,000.
+# - **Poisson regression**. It assumes each flow is a count, $T_{ij} \sim \text{Poisson}(\mu_{ij})$ with $\log \mu_{ij}$ given by the formula above, and picks the parameters that make the observed counts most likely. Zeros are fine, and because the variance of a Poisson count equals its mean, big flows carry more weight. As a bonus, the predictions add up exactly to the observed total.
+#
+# Let&#x27;s compare them.
+
+# %%
+X = sm.add_constant(pd.DataFrame({&#x27;log_m_i&#x27;: np.log(df.m_i), &#x27;log_m_j&#x27;: np.log(df.m_j), &#x27;minus_log_d&#x27;: -np.log(df.d)}))
+
+# (a) linear regression on log T, only pairs with T &gt; 0
+pos = df[&#x27;T&#x27;] &gt; 0
+ols = sm.OLS(np.log(df.loc[pos, &#x27;T&#x27;]), X[pos]).fit()
+print(&#x27;Log-linear OLS: alpha = %.2f, beta = %.2f, gamma = %.2f&#x27; % tuple(ols.params[1:]))
+df[&#x27;ols&#x27;] = gravity(df, *ols.params[1:])
+print(&#x27;   CPC =&#x27;, round(cpc(df[&#x27;T&#x27;], df.ols), 3))
+
+# (b) Poisson regression, all pairs including zeros
+poi = sm.GLM(df[&#x27;T&#x27;], X, family=sm.families.Poisson()).fit()
+print(&#x27;Poisson:        alpha = %.2f, beta = %.2f, gamma = %.2f&#x27; % tuple(poi.params[1:]))
+df[&#x27;gravity&#x27;] = poi.predict(X)
+print(&#x27;   CPC =&#x27;, round(cpc(df[&#x27;T&#x27;], df.gravity), 3))
+
+# %% [markdown]
+# ### Exponential distance decay
+#
+# With $d^{-\gamma}$ and $\gamma \approx 1$, a place 180 km away is only about 6 times less attractive than one 30 km away, so the model sends too many people on very long daily commutes. An exponential falls much faster:
+#
+# $$T_{ij} = K \, m_i^{\alpha} \, m_j^{\beta} \, e^{-d_{ij}/d_0}$$
+#
+# Same Poisson regression, with $-d$ instead of $-\log d$ as the last variable; then $d_0 = 1/\text{coefficient}$.
+
+# %%
+Xe = X.copy()
+Xe[&#x27;minus_d&#x27;] = -df.d
+Xe = Xe.drop(columns=&#x27;minus_log_d&#x27;)
+poi_exp = sm.GLM(df[&#x27;T&#x27;], Xe, family=sm.families.Poisson()).fit()
+a, b, k = poi_exp.params[1:]
+print(&#x27;Exponential: alpha = %.2f, beta = %.2f, d0 = %.0f km&#x27; % (a, b, 1 / k))
+df[&#x27;gravity_exp&#x27;] = poi_exp.predict(Xe)
+print(&#x27;   CPC =&#x27;, round(cpc(df[&#x27;T&#x27;], df.gravity_exp), 3))
+
+# %% [markdown]
+# ## 4. Radiation model (Simini et al., 2012)
+#
+# $$T_{ij} = T_i \, \frac{m_i \, n_j}{(m_i + s_{ij})(m_i + n_j + s_{ij})}$$
+#
+# - $T_i$: observed commuters leaving $i$
+# - $m_i$: workers living in $i$; $n_j$: jobs in $j$
+# - $s_{ij}$: jobs in all other municipalities closer to $i$ than $j$ is
+#
+# No parameters. Predictions are rescaled so they add up to $T_i$ for each origin.
+
+# %%
+names = mun.municipality.tolist()
+W = mun.set_index(&#x27;municipality&#x27;).workers_living
+J = mun.set_index(&#x27;municipality&#x27;).jobs
+D = dist.pivot(index=&#x27;origin&#x27;, columns=&#x27;destination&#x27;, values=&#x27;distance_km&#x27;)
+T_out = df.groupby(&#x27;origin&#x27;)[&#x27;T&#x27;].sum()
+
+rad = {}
+for i in names:
+    order = D.loc[i].drop(i).sort_values()          # other municipalities, nearest first
+    s, row = 0.0, {}
+    for j in order.index:
+        row[j] = W[i] * J[j] / ((W[i] + s) * (W[i] + J[j] + s))
+        s += J[j]                                    # jobs passed on the way
+    total = sum(row.values())
+    for j, v in row.items():
+        rad[(i, j)] = v / total * T_out[i]
+df[&#x27;radiation&#x27;] = [rad[(o, d)] for o, d in zip(df.origin, df.destination)]
+print(&#x27;Radiation: CPC =&#x27;, round(cpc(df[&#x27;T&#x27;], df.radiation), 3))
+
+# %% [markdown]
+# ## 5. Observed vs predicted
+#
+# Each dot is a pair with at least one commuter. The solid line is a perfect prediction, the dashed lines are 10 times too many or too few. The orange line is the **median prediction** for flows of a given size: where it leaves the solid line, the model is systematically off.
+
+# %%
+def obs_vs_pred(df, col, ax):
+    d = df[df[&#x27;T&#x27;] &gt; 0]
+    ax.scatter(d[&#x27;T&#x27;], d[col].clip(lower=0.1), s=3, alpha=0.2, color=&#x27;#58355E&#x27;)
+    bins = np.logspace(0, 4.6, 16)
+    mid, med = [], []
+    for a, b in zip(bins[:-1], bins[1:]):
+        sel = d[(d[&#x27;T&#x27;] &gt;= a) &amp; (d[&#x27;T&#x27;] &lt; b)]
+        if len(sel) &gt;= 5:
+            mid.append(np.sqrt(a * b)); med.append(sel[col].median())
+    ax.plot(mid, med, &#x27;-o&#x27;, color=&#x27;#EC9A29&#x27;, lw=2.5, ms=4, label=&#x27;median prediction&#x27;)
+    x = np.array([1, 1e5])
+    ax.plot(x, x, color=&#x27;#58355E&#x27;, lw=1.2, label=&#x27;perfect&#x27;)
+    ax.plot(x, 10 * x, &#x27;--&#x27;, color=&#x27;#58355E&#x27;, lw=0.8, label=&#x27;10× off&#x27;)
+    ax.plot(x, x / 10, &#x27;--&#x27;, color=&#x27;#58355E&#x27;, lw=0.8)
+    ax.set(xscale=&#x27;log&#x27;, yscale=&#x27;log&#x27;, xlim=(1, 1e5), ylim=(0.1, 1e5),
+           xlabel=&#x27;Observed commuters&#x27;, ylabel=&#x27;Predicted commuters&#x27;,
+           title=f&#x27;{col}  (CPC {cpc(df[&quot;T&quot;], df[col]):.2f})&#x27;)
+    ax.legend(loc=&#x27;upper left&#x27;, fontsize=8)
+
+fig, axes = plt.subplots(2, 2, figsize=(11, 10))
+for col, ax in zip([&#x27;zipf&#x27;, &#x27;gravity&#x27;, &#x27;gravity_exp&#x27;, &#x27;radiation&#x27;], axes.ravel()):
+    obs_vs_pred(df, col, ax)
+plt.tight_layout()
+
+# %% [markdown]
+# ## 6. Biggest misses, in number of people
+#
+# Ranked by the difference between observed and predicted commuters. These are the errors that cost the most in the CPC score.
+
+# %%
+def misses(df, col, k=8):
+    d = df.assign(predicted=df[col].round(), difference=(df[col] - df[&#x27;T&#x27;]).round())
+    cols = [&#x27;origin&#x27;, &#x27;destination&#x27;, &#x27;d&#x27;, &#x27;T&#x27;, &#x27;predicted&#x27;, &#x27;difference&#x27;]
+    too_few = d.nsmallest(k, &#x27;difference&#x27;)[cols]
+    too_many = d.nlargest(k, &#x27;difference&#x27;)[cols]
+    return too_few, too_many
+
+too_few, too_many = misses(df, &#x27;gravity&#x27;)
+print(&#x27;Gravity predicts far too few:&#x27;); display(too_few)
+print(&#x27;Gravity predicts far too many:&#x27;); display(too_many)
+
+# %% [markdown]
+# ## Your turn
+#
+# - Repeat the misses table for `radiation`. Which pairs does each model get wrong?
+# - Repeat it for `gravity_exp`. Which misses disappear with the exponential, and which remain?
+# - Use only the men or only the women (columns `men`, `women` in `flows.csv`). Is γ different?
+</code></pre>
+          </details>
+        </div>
+      </section>
+      <section>
+        <h2>The two models</h2>
+        <p><b>Gravity</b>: flows grow with the size of both places and shrink with distance.</p>
+        <p><span class="eq">T<sub>ij</sub> = K · m<sub>i</sub><sup>α</sup> · m<sub>j</sub><sup>β</sup> · d<sub>ij</sub><sup>−γ</sup></span></p>
+        <p>You choose α, β, γ with the sliders. <i>K</i> is set automatically so that the model predicts the right total number of commuters.</p>
+        <p>The distance term can also be <b>exponential</b>: <span class="eq">e<sup>−d<sub>ij</sub>/d₀</sup></span> instead of <span class="eq">d<sub>ij</sub><sup>−γ</sup></span>. With a power law, 180 km is only about 6 times less attractive than 30 km. With an exponential and d₀ = 34 km, it is about 50 times less: long daily commutes almost disappear, as in reality.</p>
+        <p><b>Radiation</b> (Simini et al., 2012): each commuter takes the closest job that is better than the ones at home. It has <b>no parameters</b>.</p>
+        <p><span class="eq">T<sub>ij</sub> = T<sub>i</sub> · m<sub>i</sub> n<sub>j</sub> / ((m<sub>i</sub> + s<sub>ij</sub>)(m<sub>i</sub> + n<sub>j</sub> + s<sub>ij</sub>))</span></p>
+        <p><i>T<sub>i</sub></i> = observed commuters leaving <i>i</i>; <i>n<sub>j</sub></i> = jobs in <i>j</i>; <i>s<sub>ij</sub></i> = jobs in all other municipalities closer to <i>i</i> than <i>j</i> is: the opportunities a commuter passes on the way. Predictions are rescaled so they add up to <i>T<sub>i</sub></i> for each origin.</p>
+      </section>
+      <section>
+        <h2>How “Best fit” works: Poisson regression</h2>
+        <p>Taking logs turns the gravity model into a linear model: <span class="eq">log T<sub>ij</sub> = log K + α log m<sub>i</sub> + β log m<sub>j</sub> − γ log d<sub>ij</sub></span></p>
+        <p>The obvious way to fit it is a linear regression on log <i>T</i>. That has two problems: pairs with zero commuters must be dropped (log 0 = −∞), and a miss of 5 vs 50 commuters counts as much as 5,000 vs 50,000.</p>
+        <p>A <b>Poisson regression</b> treats each flow as a count: <i>T<sub>ij</sub></i> is drawn from a Poisson distribution whose mean follows the formula above. It picks the α, β, γ that make the observed counts most likely. Zeros are no problem, and since a Poisson count’s variance equals its mean, big flows weigh more. The predictions also add up exactly to the real total.</p>
+        <p>On this data: the log regression gives α = 0.88, β = 1.03, γ = 1.79 and a CPC of only 0.43. The Poisson regression gives α = 0.69, β = 0.80, γ = 1.08 and a CPC of 0.64. Note that γ ≈ 1: Zipf’s 1/<i>D</i> from 1946.</p>
+        <p>With the exponential distance term, the same Poisson regression (now on −<i>d</i> instead of −log <i>d</i>) gives α = 0.81, β = 0.91, d₀ = 34 km and a CPC of 0.71: the best of the three models on this page.</p>
+      </section>
+      <section>
+        <h2>How to read the page</h2>
+        <ul>
+          <li><b>CPC</b> (common part of commuters) = 2 · Σ min(observed, predicted) / (Σ observed + Σ predicted): the share of commuters the model sends to the right place. 1 is perfect, 0 is nothing right.</li>
+          <li><b>Observed vs predicted:</b> each grey dot is one pair with at least one commuter, on log axes. The solid line is a perfect prediction; the dashed lines are 10 times too many (above) and 10 times too few (below). The orange line is the median prediction for flows of a given size: where it leaves the solid line, the model is systematically off. Pairs with zero commuters cannot be shown on a log scale.</li>
+          <li><b>Map:</b> click a municipality to see where its residents work: teal lines are the real flows, crimson lines the model’s, side by side. Only its <b>10 largest destinations</b> are shown (largest observed or predicted flow), and the map zooms to them; “Whole Denmark” zooms out.</li>
+          <li><b>Model / observed</b> labels: <span class="chip low">0.3×</span> far too few (below 0.5×), <span class="chip ok">1.2×</span> close (0.5× to 2×), <span class="chip high">3.0×</span> far too many (above 2×).</li>
+          <li><b>Biggest misses:</b> rank the model’s worst pairs either by <b>ratio</b> (how many times too many or too few, among pairs with at least 300 commuters: shows where the model is wrong in kind, e.g. across water) or by <b>number of people</b> (the errors that cost the most in the CPC).</li>
+        </ul>
+        <h3 style="margin-top:4px">Limits to keep in mind</h3>
+        <ul>
+          <li>Distance is a straight line between centres: water, bridges and ferries (the Great Belt, Bornholm), roads and trains are not taken into account.</li>
+          <li>One point per municipality is a rough approximation for large municipalities. One year (2024), one kind of trip (home to work).</li>
+        </ul>
+      </section>
+    </div>
+  </section>
+
+  <h2 style="margin-top:4px">The playground</h2>
+  <div class="steps" aria-label="Exercise steps">
+    <span class="step"><b>1</b>Predict: before touching anything, write down 2–3 pairs where you expect the model to fail</span>
+    <span class="step"><b>2</b>Explore: move the sliders, switch models, click on the map</span>
+    <span class="step"><b>3</b>Check: are your pairs among the biggest misses? Why?</span>
+    <span class="step"><b>Exercise 2</b>Switch to Radiation: nothing to fit. Where does each model win?</span>
+  </div>
+
+  <section class="panel controls" aria-label="Model controls">
+    <div class="seg" role="group" aria-label="Model">
+      <button id="mGrav" aria-pressed="true">Gravity</button>
+      <button id="mRad" aria-pressed="false">Radiation</button>
+    </div>
+    <div style="display:grid;gap:10px">
+      <div class="sliders" id="sliders">
+        <div class="slider">
+          <label for="sA"><span>α · origin</span><span id="vA">1.00</span></label>
+          <input id="sA" type="range" min="0" max="2" step="0.05" value="1">
+          <small>bigger origins send more</small>
+        </div>
+        <div class="slider">
+          <label for="sB"><span>β · destination</span><span id="vB">1.00</span></label>
+          <input id="sB" type="range" min="0" max="2" step="0.05" value="1">
+          <small>bigger destinations attract more</small>
+        </div>
+        <div class="slider" id="boxG">
+          <label for="sG"><span>γ · distance</span><span id="vG">1.00</span></label>
+          <input id="sG" type="range" min="0" max="4" step="0.05" value="1">
+          <small>flows fall with distance</small>
+        </div>
+        <div class="slider" id="boxD" style="display:none">
+          <label for="sD"><span>d₀ · distance scale</span><span id="vD">30 km</span></label>
+          <input id="sD" type="range" min="5" max="150" step="1" value="30">
+          <small>flows shrink 2.7× every d₀ km</small>
+        </div>
+      </div>
+      <div class="btns" style="align-items:center">
+        <span class="sub" style="font-size:13px">Distance</span>
+        <div class="seg small" role="group" aria-label="Distance function">
+          <button id="dPow" aria-pressed="true">power law d<sup>−γ</sup></button>
+          <button id="dExp" aria-pressed="false">exponential e<sup>−d/d₀</sup></button>
+        </div>
+      </div>
+      <div class="btns">
+        <button class="btn" id="bZipf">Zipf (1946): α = β = γ = 1</button>
+        <button class="btn" id="bFit">Best fit (Poisson regression)</button>
+      </div>
+    </div>
+    <div class="score">
+      <div class="big num" id="cpc">–</div>
+      <div class="lbl">Common part of commuters (CPC)<br>1 = perfect, 0 = nothing right</div>
+      <div class="bar"><i id="cpcBar"></i></div>
+    </div>
+    <p class="formula" id="formula"></p>
+  </section>
+
+  <div class="two">
+    <section class="panel" aria-label="Observed versus predicted">
+      <div class="panel-head">
+        <h2>Observed vs predicted</h2>
+        <span class="sub" style="font-size:13px">one dot per pair of municipalities</span>
+      </div>
+      <div id="scatterWrap"><canvas id="scatter" height="460"></canvas><div id="tip"></div></div>
+      <div class="legend">
+        <span><i class="dot"></i>one pair of municipalities (click: show its origin on the map)</span>
+        <span><i class="sw" style="border-top-color:var(--orange);border-top-width:4px"></i>median prediction for flows of that size</span>
+        <span><i class="sw" style="border-top-color:var(--ink);border-top-width:2px"></i>perfect prediction</span>
+        <span><i class="sw" style="border-top:1.5px dashed var(--ink)"></i>10× too many / 10× too few</span>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Map">
+      <div class="panel-head">
+        <h2>Where do people from <span id="selName">…</span> work?</h2>
+        <div class="btns" style="align-items:center">
+          <label for="selMun" class="sub" style="font-size:13px">municipality
+            <select id="selMun"></select>
+          </label>
+          <button class="btn" id="bZoom">Whole Denmark</button>
+        </div>
+      </div>
+      <svg id="map" role="img" aria-label="Map of Danish municipalities with commuting flows"></svg>
+      <div class="legend">
+        <span><i class="sw"></i>observed</span>
+        <span><i class="sw pred"></i>predicted</span>
+        <span><b>Filter:</b> only the 10 destinations with the largest flow are shown, ranked by the observed or the predicted number, whichever is bigger (so a destination the model wrongly expects to be big also appears). Lines for less than one commuter are not drawn. Line width = number of commuters; the table lists the same 10, sorted by observed. Click a municipality to select it.</span>
+      </div>
+      <div class="legend"><span>Model / observed:</span><span><span class="chip low">0.3×</span> far too few</span><span><span class="chip ok">1.2×</span> close (0.5–2×)</span><span><span class="chip high">3.0×</span> far too many</span></div>
+      <div class="tblwrap">
+        <table aria-label="Top destinations of the selected municipality">
+          <thead><tr><th>Works in</th><th class="r">km</th><th class="r">Observed</th><th class="r">Predicted</th><th class="r">Model / observed</th></tr></thead>
+          <tbody id="destRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel" aria-label="Biggest misses">
+    <div class="panel-head">
+      <h2>Biggest misses</h2>
+      <div class="btns" style="align-items:center">
+        <span class="sub" style="font-size:13px">Rank by</span>
+        <div class="seg" role="group" aria-label="Rank misses by" style="background:var(--lilac)">
+          <button id="rRatio" aria-pressed="true">Ratio</button>
+          <button id="rPeople" aria-pressed="false">Number of people</button>
+        </div>
+      </div>
+    </div>
+    <p class="sub" style="font-size:13px;margin-top:-4px" id="missNote"></p>
+    <div class="two">
+      <div class="tblwrap">
+        <h3 style="margin-bottom:6px">The model predicts far too few</h3>
+        <table><thead><tr><th>From → to</th><th class="r">km</th><th class="r">Observed</th><th class="r">Predicted</th><th class="r">Missing</th><th class="r">Model / obs.</th></tr></thead><tbody id="lowRows"></tbody></table>
+      </div>
+      <div class="tblwrap">
+        <h3 style="margin-bottom:6px">The model predicts far too many</h3>
+        <table><thead><tr><th>From → to</th><th class="r">km</th><th class="r">Observed</th><th class="r">Predicted</th><th class="r">Extra</th><th class="r">Model / obs.</th></tr></thead><tbody id="highRows"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(async function () {
+  const [data, geo] = await Promise.all([
+    fetch('data.json').then(r => r.json()),
+    fetch('geo.json').then(r => r.json()),
+  ]);
+  const mun = data.municipalities, n = mun.length;
+  const fmt = v => Math.round(v).toLocaleString('en-GB');
+  const W = mun.map(m => m.workers), J = mun.map(m => m.jobs);
+
+  // ---------- distances (great-circle, km, between centres) ----------
+  const R_EARTH = 6371.0088, rad = Math.PI / 180;
+  const dist = new Float64Array(n * n);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    if (i === j) continue;
+    const p1 = mun[i].lat * rad, p2 = mun[j].lat * rad, dl = (mun[j].lon - mun[i].lon) * rad;
+    const h = Math.sin((p2 - p1) / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+    dist[i * n + j] = 2 * R_EARTH * Math.asin(Math.sqrt(h));
+  }
+  // ---------- observed flows (between different municipalities) ----------
+  const obs = new Float64Array(n * n);
+  for (const [i, j, c] of data.flows) obs[i * n + j] = c;
+  const pairs = [];
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (i !== j) pairs.push(i * n + j);
+  let totObs = 0; for (const k of pairs) totObs += obs[k];
+  const outObs = new Float64Array(n);
+  for (const k of pairs) outObs[Math.floor(k / n)] += obs[k];
+
+  // ---------- models ----------
+  const lW = W.map(Math.log), lJ = J.map(Math.log);
+  function gravity(a, b, g, decay = 'power', d0 = 30) {
+    const P = new Float64Array(n * n); let s = 0;
+    for (const k of pairs) {
+      const i = Math.floor(k / n), j = k % n;
+      const v = Math.exp(a * lW[i] + b * lJ[j] - (decay === 'power' ? g * Math.log(dist[k]) : dist[k] / d0));
+      P[k] = v; s += v;
+    }
+    const K = totObs / s;
+    for (const k of pairs) P[k] *= K;
+    return P;
+  }
+  function radiation() {
+    const P = new Float64Array(n * n);
+    for (let i = 0; i < n; i++) {
+      const order = [];
+      for (let j = 0; j < n; j++) if (j !== i) order.push(j);
+      order.sort((x, y) => dist[i * n + x] - dist[i * n + y]);
+      let cum = 0, rowSum = 0;
+      for (const j of order) {
+        const s = cum;
+        const v = W[i] * J[j] / ((W[i] + s) * (W[i] + J[j] + s));
+        P[i * n + j] = v; rowSum += v; cum += J[j];
+      }
+      for (const j of order) P[i * n + j] *= outObs[i] / rowSum;
+    }
+    return P;
+  }
+  // Poisson regression (IRLS) for log T = c + α log m_i + β log m_j − γ log d
+  function poissonFit(decay) {
+    const X = pairs.map(k => { const i = Math.floor(k / n), j = k % n; return [1, lW[i], lJ[j], decay === 'power' ? -Math.log(dist[k]) : -dist[k]]; });
+    const y = pairs.map(k => obs[k]);
+    let b = [0, 1, 1, decay === 'power' ? 1 : 1 / 30];
+    { let s = 0; for (const x of X) s += Math.exp(x[1] + x[2] + b[3] * x[3]); b[0] = Math.log(totObs / s); }
+    for (let it = 0; it < 40; it++) {
+      const A = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]], v = [0,0,0,0];
+      for (let r = 0; r < X.length; r++) {
+        const x = X[r]; const eta = b[0]*x[0] + b[1]*x[1] + b[2]*x[2] + b[3]*x[3];
+        const mu = Math.exp(eta), z = eta + (y[r] - mu) / mu;
+        for (let p = 0; p < 4; p++) { v[p] += mu * x[p] * z; for (let q = 0; q < 4; q++) A[p][q] += mu * x[p] * x[q]; }
+      }
+      const nb = solve4(A, v);
+      const diff = Math.max(...nb.map((t, p) => Math.abs(t - b[p])));
+      b = nb; if (diff < 1e-10) break;
+    }
+    return decay === 'power' ? { alpha: b[1], beta: b[2], gamma: b[3] } : { alpha: b[1], beta: b[2], d0: 1 / b[3] };
+  }
+  function solve4(A, v) {
+    const M = A.map((row, i) => [...row, v[i]]);
+    for (let c = 0; c < 4; c++) {
+      let p = c; for (let r = c + 1; r < 4; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+      [M[c], M[p]] = [M[p], M[c]];
+      for (let r = 0; r < 4; r++) if (r !== c) { const f = M[r][c] / M[c][c]; for (let q = c; q < 5; q++) M[r][q] -= f * M[c][q]; }
+    }
+    return M.map((row, i) => row[4] / row[i]);
+  }
+  function cpc(P) {
+    let m = 0, sp = 0;
+    for (const k of pairs) { m += Math.min(obs[k], P[k]); sp += P[k]; }
+    return 2 * m / (totObs + sp);
+  }
+  const RAD = radiation();
+  const FIT = { power: poissonFit('power'), exp: poissonFit('exp') };
+
+  // ---------- state ----------
+  const state = { model: 'gravity', decay: 'power', a: 1, b: 1, g: 1, d0: 30, sel: mun.findIndex(m => m.name === 'Roskilde') };
+  let pred = gravity(1, 1, 1);
+
+  // ---------- controls ----------
+  const $ = id => document.getElementById(id);
+  const sA = $('sA'), sB = $('sB'), sG = $('sG'), sD = $('sD');
+  function setDecay(d) {
+    state.decay = d;
+    $('dPow').setAttribute('aria-pressed', d === 'power');
+    $('dExp').setAttribute('aria-pressed', d === 'exp');
+    $('boxG').style.display = d === 'power' ? '' : 'none';
+    $('boxD').style.display = d === 'exp' ? '' : 'none';
+    update();
+  }
+  $('dPow').addEventListener('click', () => setDecay('power'));
+  $('dExp').addEventListener('click', () => setDecay('exp'));
+  for (const [el, key] of [[sA, 'a'], [sB, 'b'], [sG, 'g'], [sD, 'd0']]) el.addEventListener('input', () => { state[key] = +el.value; update(); });
+  $('bZipf').addEventListener('click', () => {
+    state.a = state.b = state.g = 1; sA.value = sB.value = sG.value = 1;
+    if (state.model !== 'gravity') setModel('gravity');
+    setDecay('power');
+  });
+  $('bFit').addEventListener('click', () => {
+    if (state.model !== 'gravity') setModel('gravity');
+    const f = FIT[state.decay];
+    state.a = +f.alpha.toFixed(2); state.b = +f.beta.toFixed(2); sA.value = state.a; sB.value = state.b;
+    if (state.decay === 'power') { state.g = +f.gamma.toFixed(2); sG.value = state.g; }
+    else { state.d0 = Math.round(f.d0); sD.value = state.d0; }
+    update();
+  });
+  function setModel(m) {
+    state.model = m;
+    $('mGrav').setAttribute('aria-pressed', m === 'gravity');
+    $('mRad').setAttribute('aria-pressed', m === 'radiation');
+    $('sliders').classList.toggle('off', m === 'radiation');
+    $('dPow').disabled = $('dExp').disabled = (m === 'radiation');
+    update();
+  }
+  $('mGrav').addEventListener('click', () => setModel('gravity'));
+  $('mRad').addEventListener('click', () => setModel('radiation'));
+  const selEl = $('selMun');
+  [...mun.keys()].sort((x, y) => mun[x].name.localeCompare(mun[y].name, 'da')).forEach(i => {
+    const o = document.createElement('option'); o.value = i; o.textContent = mun[i].name; selEl.appendChild(o);
+  });
+  selEl.addEventListener('change', () => select(+selEl.value));
+
+  // ---------- scatter ----------
+  const cv = $('scatter'), ctx = cv.getContext('2d'), tip = $('tip');
+  const X0 = 0, X1 = 5, Y0 = -1, Y1 = 5; // log10 ranges: observed 1..100k, predicted 0.1..100k
+  const padL = 56, padR = 12, padT = 12, padB = 44;
+  let geom = null, screenPts = [];
+  function sizeCanvas() {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = Math.max(320, Math.min(480, w * 0.9));
+    cv.width = w * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    geom = { w, h };
+  }
+  const sx = v => padL + (Math.log10(v) - X0) / (X1 - X0) * (geom.w - padL - padR);
+  const sy = v => padT + (1 - (Math.log10(Math.max(v, 0.1)) - Y0) / (Y1 - Y0)) * (geom.h - padT - padB);
+  function drawScatter() {
+    const { w, h } = geom; ctx.clearRect(0, 0, w, h);
+    ctx.font = '12px "Bricolage Grotesque", Arial'; ctx.fillStyle = '#7A6A7E'; ctx.strokeStyle = '#E3DAE5'; ctx.lineWidth = 1;
+    const ticks = [[0.1, '0.1'], [1, '1'], [10, '10'], [100, '100'], [1e3, '1k'], [1e4, '10k'], [1e5, '100k']];
+    ctx.textAlign = 'center';
+    for (const [v, l] of ticks) if (v >= 1) { const x = sx(v); ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, h - padB); ctx.stroke(); ctx.fillText(l, x, h - padB + 16); }
+    ctx.textAlign = 'right';
+    for (const [v, l] of ticks) { const y = sy(v); ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke(); ctx.fillText(l, padL - 6, y + 4); }
+    ctx.textAlign = 'center'; ctx.fillStyle = '#58355E'; ctx.font = '600 13px "Bricolage Grotesque", Arial';
+    ctx.fillText('Observed commuters', padL + (w - padL - padR) / 2, h - 8);
+    ctx.save(); ctx.translate(14, padT + (h - padT - padB) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('Predicted commuters', 0, 0); ctx.restore();
+    // reference lines
+    ctx.save(); ctx.beginPath(); ctx.rect(padL, padT, w - padL - padR, h - padT - padB); ctx.clip();
+    ctx.strokeStyle = '#58355E'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx(1), sy(1)); ctx.lineTo(sx(1e5), sy(1e5)); ctx.stroke();
+    ctx.setLineDash([5, 5]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(sx(1), sy(10)); ctx.lineTo(sx(1e4), sy(1e5)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx(1), sy(0.1)); ctx.lineTo(sx(1e5), sy(1e4)); ctx.stroke();
+    ctx.setLineDash([]);
+    // points
+    screenPts = [];
+    ctx.fillStyle = 'rgba(88,53,94,0.22)';
+    for (const k of pairs) {
+      if (obs[k] <= 0) continue;
+      const x = sx(obs[k]), y = sy(pred[k]);
+      screenPts.push([x, y, k]);
+      ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
+    }
+    // labels for the dashed lines
+    ctx.fillStyle = '#58355E'; ctx.font = '12px "Bricolage Grotesque", Arial'; ctx.textAlign = 'left';
+    ctx.textAlign = 'right';
+    ctx.fillText('10× too many', sx(300) - 6, sy(3000) - 4);
+    ctx.fillText('10× too few', sx(4e4), sy(4e3) + 16);
+    // trend: median prediction in bins of observed flow (log-spaced)
+    const edges = []; for (let e = 0; e <= 4.6 + 1e-9; e += 4.6 / 15) edges.push(10 ** e);
+    const trend = [];
+    for (let b = 0; b < edges.length - 1; b++) {
+      const vals = [];
+      for (const k of pairs) if (obs[k] >= edges[b] && obs[k] < edges[b + 1]) vals.push(pred[k]);
+      if (vals.length < 5) continue;
+      vals.sort((p, q) => p - q);
+      const m = vals.length % 2 ? vals[(vals.length - 1) / 2] : (vals[vals.length / 2 - 1] + vals[vals.length / 2]) / 2;
+      trend.push([Math.sqrt(edges[b] * edges[b + 1]), m]);
+    }
+    ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 7; ctx.lineJoin = 'round';
+    ctx.beginPath(); trend.forEach(([o, p], t) => t ? ctx.lineTo(sx(o), sy(p)) : ctx.moveTo(sx(o), sy(p))); ctx.stroke();
+    ctx.strokeStyle = '#EC9A29'; ctx.lineWidth = 3.5;
+    ctx.beginPath(); trend.forEach(([o, p], t) => t ? ctx.lineTo(sx(o), sy(p)) : ctx.moveTo(sx(o), sy(p))); ctx.stroke();
+    ctx.fillStyle = '#EC9A29';
+    trend.forEach(([o, p]) => { ctx.beginPath(); ctx.arc(sx(o), sy(p), 3.5, 0, 2 * Math.PI); ctx.fill(); });
+    ctx.restore();
+  }
+  function nearest(mx, my) {
+    let best = null, bd = 49;
+    for (const p of screenPts) { const d = (p[0] - mx) ** 2 + (p[1] - my) ** 2; if (d < bd) { bd = d; best = p; } }
+    return best;
+  }
+  cv.addEventListener('mousemove', e => {
+    const r = cv.getBoundingClientRect(), p = nearest(e.clientX - r.left, e.clientY - r.top);
+    if (!p) { tip.style.display = 'none'; return; }
+    const k = p[2], i = Math.floor(k / n), j = k % n;
+    tip.textContent = `${mun[i].name} → ${mun[j].name} · observed ${fmt(obs[k])} · predicted ${fmt(pred[k])}`;
+    tip.style.display = 'block';
+    const left = Math.min(p[0] + 12, cv.clientWidth - tip.offsetWidth - 4);
+    tip.style.left = Math.max(4, left) + 'px'; tip.style.top = (p[1] - 34) + 'px';
+  });
+  cv.addEventListener('mouseleave', () => tip.style.display = 'none');
+  cv.addEventListener('click', e => {
+    const r = cv.getBoundingClientRect(), p = nearest(e.clientX - r.left, e.clientY - r.top);
+    if (p) select(Math.floor(p[2] / n));
+  });
+
+  // ---------- map ----------
+  const svg = $('map'), NS = 'http://www.w3.org/2000/svg';
+  const COS = Math.cos(56 * rad), LON0 = 7.9, LAT1 = 57.85, S = 100;
+  const px = lon => (lon - LON0) * COS * S, py = lat => (LAT1 - lat) * S;
+  let maxX = 0, maxY = 0;
+  geo.forEach(rings => rings.forEach(r => r.forEach(([lo, la]) => { maxX = Math.max(maxX, px(lo)); maxY = Math.max(maxY, py(la)); })));
+  const FULL = [0, 0, maxX + 4, maxY + 4];
+  let zoomed = true;
+  $('bZoom').addEventListener('click', () => { zoomed = !zoomed; $('bZoom').textContent = zoomed ? 'Whole Denmark' : 'Zoom to flows'; drawFlows(); });
+  const gMap = document.createElementNS(NS, 'g'), gFlow = document.createElementNS(NS, 'g');
+  svg.append(gMap, gFlow);
+  const paths = geo.map((rings, i) => {
+    const p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', rings.map(r => 'M' + r.map(([lo, la]) => px(lo).toFixed(1) + ',' + py(la).toFixed(1)).join('L') + 'Z').join(''));
+    p.setAttribute('class', 'm');
+    const t = document.createElementNS(NS, 'title'); t.textContent = mun[i].name; p.appendChild(t);
+    p.addEventListener('click', () => select(i));
+    gMap.appendChild(p); return p;
+  });
+  function drawFlows() {
+    gFlow.innerHTML = '';
+    const i = state.sel;
+    const dests = [];
+    for (let j = 0; j < n; j++) if (j !== i) dests.push(j);
+    const top = dests.map(j => [j, Math.max(obs[i * n + j], pred[i * n + j])]).sort((a, b) => b[1] - a[1]).slice(0, 10).map(d => d[0]);
+    const vmax = Math.max(1, ...top.map(j => Math.max(obs[i * n + j], pred[i * n + j])));
+    const x0 = px(mun[i].lon), y0 = py(mun[i].lat);
+    let vb = FULL;
+    if (zoomed) {
+      const xs = [x0, ...top.map(j => px(mun[j].lon))], ys = [y0, ...top.map(j => py(mun[j].lat))];
+      let xa = Math.min(...xs), xb = Math.max(...xs), ya = Math.min(...ys), yb = Math.max(...ys);
+      let w = Math.max(xb - xa, 60) * 1.35, h = Math.max(yb - ya, 50) * 1.35;
+      if (w / h < 1.15) w = h * 1.15; else h = w / 1.15;
+      const cx = (xa + xb) / 2, cy = (ya + yb) / 2;
+      vb = [cx - w / 2, cy - h / 2, w, h];
+    }
+    svg.setAttribute('viewBox', vb.join(' '));
+    const u = vb[2] / (svg.clientWidth || 600);   // user units per screen pixel
+    const line = (j, v, cls) => {
+      if (v < 1) return;
+      const x1 = px(mun[j].lon), y1 = py(mun[j].lat);
+      const L = Math.hypot(x1 - x0, y1 - y0) || 1, nx = -(y1 - y0) / L, ny = (x1 - x0) / L;
+      const wpx = 1 + 9 * Math.sqrt(v / vmax);
+      const off = (cls === 'obs' ? -1 : 1) * (wpx / 2 + 0.8) * u;     // observed on one side, predicted on the other
+      const l = document.createElementNS(NS, 'line');
+      l.setAttribute('x1', x0 + nx * off); l.setAttribute('y1', y0 + ny * off);
+      l.setAttribute('x2', x1 + nx * off); l.setAttribute('y2', y1 + ny * off);
+      l.setAttribute('stroke', cls === 'obs' ? '#0F8B8D' : '#EC0B43');
+      l.setAttribute('stroke-width', wpx.toFixed(2));
+      l.setAttribute('stroke-linecap', 'butt');
+      l.setAttribute('opacity', 0.85);
+      gFlow.appendChild(l);
+    };
+    top.forEach(j => line(j, obs[i * n + j], 'obs'));
+    top.forEach(j => line(j, pred[i * n + j], 'pred'));
+    top.forEach(j => {
+      const c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', px(mun[j].lon)); c.setAttribute('cy', py(mun[j].lat)); c.setAttribute('r', 3 * u); c.setAttribute('fill', '#58355E');
+      gFlow.appendChild(c);
+    });
+    if (zoomed) top.slice(0, 6).forEach(j => {
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('x', px(mun[j].lon) + 5 * u); t.setAttribute('y', py(mun[j].lat) - 4 * u);
+      t.setAttribute('font-size', 12 * u); t.setAttribute('fill', '#58355E'); t.setAttribute('font-family', 'Bricolage Grotesque, Arial');
+      t.setAttribute('paint-order', 'stroke'); t.setAttribute('stroke', '#fff'); t.setAttribute('stroke-width', 3 * u);
+      t.textContent = mun[j].name; gFlow.appendChild(t);
+    });
+    const o = document.createElementNS(NS, 'circle');
+    o.setAttribute('cx', x0); o.setAttribute('cy', y0); o.setAttribute('r', 5.5 * u); o.setAttribute('fill', '#EC0B43'); o.setAttribute('stroke', '#fff'); o.setAttribute('stroke-width', 1.5 * u);
+    gFlow.appendChild(o);
+    paths.forEach((p, k) => p.classList.toggle('sel', k === i));
+    // table
+    const rows = [...top].sort((a, b) => obs[i * n + b] - obs[i * n + a]);
+    $('destRows').innerHTML = rows.map(j => {
+      const k = i * n + j;
+      return `<tr data-o="${j}"><td>${mun[j].name}</td><td class="r">${dist[k].toFixed(0)}</td><td class="r">${fmt(obs[k])}</td><td class="r">${fmt(pred[k])}</td><td class="r">${ratioChip(obs[k], pred[k])}</td></tr>`;
+    }).join('');
+    $('destRows').querySelectorAll('tr').forEach(tr => tr.addEventListener('click', () => select(+tr.dataset.o)));
+    $('selName').textContent = mun[i].name;
+    selEl.value = i;
+  }
+  function ratioChip(o, p) {
+    if (o <= 0) return '<span class="chip high">no real flow</span>';
+    const r = p / o, cls = r < 0.5 ? 'low' : r > 2 ? 'high' : 'ok';
+    const txt = r >= 10 ? r.toFixed(0) : r >= 1 ? r.toFixed(1) : r.toFixed(2);
+    return `<span class="chip ${cls}">${txt}×</span>`;
+  }
+
+  // ---------- misses ----------
+  let rankBy = 'ratio';
+  const NOTE = {
+    ratio: 'Pairs where the model is furthest off as a ratio, among pairs with at least 300 commuters (observed or predicted). Good for spotting where the model is wrong in kind. Click a row to see it on the map.',
+    people: 'Pairs where the model is off by the most commuters. These are the errors that cost the most in the CPC score. Click a row to see it on the map.',
+  };
+  $('rRatio').addEventListener('click', () => { rankBy = 'ratio'; drawMisses(); });
+  $('rPeople').addEventListener('click', () => { rankBy = 'people'; drawMisses(); });
+  function drawMisses() {
+    $('rRatio').setAttribute('aria-pressed', rankBy === 'ratio');
+    $('rPeople').setAttribute('aria-pressed', rankBy === 'people');
+    $('missNote').textContent = NOTE[rankBy];
+    let low, high;
+    if (rankBy === 'people') {
+      const diff = pairs.map(k => [k, pred[k] - obs[k]]);
+      low = [...diff].sort((a, b) => a[1] - b[1]).slice(0, 8);
+      high = [...diff].sort((a, b) => b[1] - a[1]).slice(0, 8);
+    } else {
+      const cand = pairs.filter(k => Math.max(obs[k], pred[k]) >= 300).map(k => [k, (pred[k] + 1) / (obs[k] + 1)]);
+      low = [...cand].sort((a, b) => a[1] - b[1]).slice(0, 8);
+      high = [...cand].sort((a, b) => b[1] - a[1]).slice(0, 8);
+    }
+    const row = ([k]) => {
+      const i = Math.floor(k / n), j = k % n, dlt = pred[k] - obs[k];
+      return `<tr data-o="${i}"><td>${mun[i].name} → ${mun[j].name}</td><td class="r">${dist[k].toFixed(0)}</td><td class="r">${fmt(obs[k])}</td><td class="r">${fmt(pred[k])}</td><td class="r">${rankBy === 'people' ? '<b>' + fmt(Math.abs(dlt)) + '</b>' : fmt(Math.abs(dlt))}</td><td class="r">${rankBy === 'ratio' ? '<b>' + ratioChip(obs[k], pred[k]) + '</b>' : ratioChip(obs[k], pred[k])}</td></tr>`;
+    };
+    $('lowRows').innerHTML = low.map(row).join('');
+    $('highRows').innerHTML = high.map(row).join('');
+    document.querySelectorAll('#lowRows tr, #highRows tr').forEach(tr => tr.addEventListener('click', () => {
+      select(+tr.dataset.o); document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }));
+  }
+  function select(i) { state.sel = i; drawScatter(); drawFlows(); }
+  function update() {
+    pred = state.model === 'gravity' ? gravity(state.a, state.b, state.g, state.decay, state.d0) : RAD;
+    $('vA').textContent = state.a.toFixed(2); $('vB').textContent = state.b.toFixed(2); $('vG').textContent = state.g.toFixed(2);
+    $('vD').textContent = state.d0 + ' km';
+    const g = state.model === 'gravity', f = FIT[state.decay];
+    const isZipf = g && state.decay === 'power' && state.a === 1 && state.b === 1 && state.g === 1;
+    const isFit = g && state.a === +f.alpha.toFixed(2) && state.b === +f.beta.toFixed(2) &&
+      (state.decay === 'power' ? state.g === +f.gamma.toFixed(2) : state.d0 === Math.round(f.d0));
+    $('bZipf').classList.toggle('active', isZipf); $('bZipf').setAttribute('aria-pressed', isZipf);
+    $('bFit').classList.toggle('active', isFit); $('bFit').setAttribute('aria-pressed', isFit);
+    const c = cpc(pred);
+    $('cpc').textContent = c.toFixed(2);
+    $('cpcBar').style.width = (c * 100).toFixed(1) + '%';
+    $('formula').innerHTML = state.model === 'gravity'
+      ? `<b>Gravity:</b> T<sub>ij</sub> = K · m<sub>i</sub><sup>${state.a.toFixed(2)}</sup> · m<sub>j</sub><sup>${state.b.toFixed(2)}</sup> · ${state.decay === 'power' ? `d<sub>ij</sub><sup>−${state.g.toFixed(2)}</sup>` : `e<sup>−d<sub>ij</sub> / ${state.d0}</sup>`} &nbsp;·&nbsp; m<sub>i</sub> = workers living in i, m<sub>j</sub> = jobs in j, d = distance in km`
+      : `<b>Radiation:</b> no parameters. Each commuter takes the closest job better than those at home; flows depend on the jobs in between (s<sub>ij</sub>).`;
+    drawScatter(); drawFlows(); drawMisses();
+  }
+
+  $('bCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText($('pycode').textContent); $('copyMsg').textContent = 'Copied.'; }
+    catch (e) { $('copyMsg').textContent = 'Copy is blocked here: select the code and copy it by hand.'; }
+  });
+  sizeCanvas();
+  window.addEventListener('resize', () => { sizeCanvas(); drawScatter(); });
+  update();
+  window.__check = { cpcZipf: cpc(gravity(1, 1, 1)), cpcRad: cpc(RAD), fit: FIT,
+    cpcFitPow: cpc(gravity(FIT.power.alpha, FIT.power.beta, FIT.power.gamma)),
+    cpcFitExp: cpc(gravity(FIT.exp.alpha, FIT.exp.beta, 0, 'exp', FIT.exp.d0)) };
+})();
+</script>
+</body>
+</html>

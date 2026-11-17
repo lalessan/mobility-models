@@ -1,0 +1,32 @@
+/* MOTIFS colours on top of the cosmo theme */
+:root {
+  --plum: #58355E;
+  --crimson: #EC0B43;
+  --teal: #0F8B8D;
+  --lilac: #F3EFF4;
+  --muted: #8A7A8D;
+}
+body { color: var(--plum); }
+h1, h2, h3, .title { color: var(--plum); font-weight: 700; }
+.subtitle { color: var(--muted); }
+a { color: var(--crimson); }
+.navbar { background-color: var(--plum) !important; }
+
+.buttons { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1.2rem 0 1.6rem; }
+.buttons a {
+  display: inline-block; padding: .55rem 1.1rem; border-radius: 999px;
+  text-decoration: none; font-weight: 600; border: 2px solid var(--plum); color: var(--plum);
+}
+.buttons a.primary { background: var(--crimson); border-color: var(--crimson); color: #fff; }
+.buttons a:hover { opacity: .85; }
+
+.card {
+  background: var(--lilac); border: none; border-radius: 14px;
+  padding: 1rem 1.3rem; margin: 1rem 0;
+}
+.card h3 { margin-top: .2rem; }
+.timing { font-size: .85em; color: var(--muted); font-weight: 400; }
+table { font-size: .95rem; }
+body, h1, h2, h3, .title, .navbar { font-family: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+.navbar .navbar-brand, .navbar .nav-link, .navbar .navbar-title { color: #fff !important; }
+.navbar .nav-link.active { text-decoration: underline; text-underline-offset: 6px; }

@@ -1,0 +1,51 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Modelling human mobility",
+    "section": "",
+    "text": "Open the playground Shared doc for group answers Slides (PDF) Slides (PowerPoint)"
+  },
+  {
+    "objectID": "index.html#plan-for-today",
+    "href": "index.html#plan-for-today",
+    "title": "Modelling human mobility",
+    "section": "Plan for today",
+    "text": "Plan for today\n\n\n\nPart\nWhat\n\n\n\n\n\nMe\nWho I am and what I work on\n10 min\n\n\nModels\nWhat is a model? Group activity\n25 min\n\n\nGravity\nModel 1: gravity. Exercise 1\n30 min\n\n\nRadiation\nModel 2: radiation. Exercise 2\n30 min\n\n\nWrap-up\nBack to your definitions\n15 min\n\n\n\nBy the end of today, you can\n\ndescribe any model with five questions, e.g. is it built to explain or to predict?\nfit the gravity model of commuting flows to Danish data, and measure its accuracy\nexplain how the radiation model follows from how people choose a job"
+  },
+  {
+    "objectID": "index.html#activity",
+    "href": "index.html#activity",
+    "title": "Modelling human mobility",
+    "section": "Group activity: what is a model?",
+    "text": "Group activity: what is a model?\n\nIn your group 10 min\n\nWrite one sentence that defines what a model is, in your group’s row of the shared doc. (5 min)\nDoes your definition include these? The metro map, the SIR model of an epidemic, a weather forecast, a linear regression, ChatGPT, F = ma. Discuss, and fix your definition in the doc if it breaks. (5 min)\n\n\nFive questions to ask of a model\n\n\n\nQuestion\nOne end\nThe other end\n\n\n\n\nWhat is it for?\nexplain\npredict\n\n\nHow is it built?\nfrom a mechanism\nfrom data\n\n\nHow many parameters?\nnone\nmany\n\n\nWhat does it describe?\nindividuals\naggregates\n\n\nWhere does it work?\none place\nanywhere"
+  },
+  {
+    "objectID": "index.html#gravity",
+    "href": "index.html#gravity",
+    "title": "Modelling human mobility",
+    "section": "Model 1: gravity",
+    "text": "Model 1: gravity\nThe number of people travelling from \\(i\\) to \\(j\\) grows with the size of both places and falls with the distance between them:\n\\[\nT_{ij} = K \\, \\frac{m_i^{\\alpha} \\, m_j^{\\beta}}{d_{ij}^{\\gamma}}\n\\qquad \\text{or, with exponential decay,} \\qquad\nT_{ij} = K \\, m_i^{\\alpha} \\, m_j^{\\beta} \\, e^{-d_{ij}/d_0}\n\\]\n\\(m_i\\): workers living in \\(i\\) · \\(m_j\\): workers living in \\(j\\) · \\(d_{ij}\\): distance · \\(K\\): chosen so that the total predicted equals the total observed. Zipf (1946) used \\(\\alpha = \\beta = \\gamma = 1\\).\n\nExercise 1: fit the gravity model 20 min\n\nPredict (3 min). Before opening the playground, write down 2–3 pairs of municipalities where you expect the model to fail.\nExplore (10 min). Open the playground. Fit \\(\\alpha\\), \\(\\beta\\), \\(\\gamma\\). How well does the model do?\nCheck (5 min). Were your predictions right? Where does it fail, and why? Write it in the shared doc."
+  },
+  {
+    "objectID": "index.html#radiation",
+    "href": "index.html#radiation",
+    "title": "Modelling human mobility",
+    "section": "Model 2: radiation",
+    "text": "Model 2: radiation\nA job seeker in \\(i\\) gets offers everywhere, each with a random quality drawn the same way everywhere, and takes the closest offer that is better than the best one at home. Counting how often that offer is in \\(j\\) gives\n\\[\nT_{ij} = T_i \\, \\frac{m_i \\, n_j}{(m_i + s_{ij})(m_i + n_j + s_{ij})}\n\\]\n\\(T_i\\): commuters leaving \\(i\\) · \\(m_i\\): workers living in \\(i\\) · \\(n_j\\): jobs in \\(j\\) · \\(s_{ij}\\): jobs in all municipalities closer to \\(i\\) than \\(j\\) is. No parameters to fit. Simini, González, Maritan & Barabási (2012).\n\nExercise 2: gravity vs radiation 15 min\n\nSwitch (3 min). Set the playground to Radiation. There is nothing to fit.\nCompare (7 min). CPC vs gravity (power law and exponential). Where does the orange line leave the diagonal?\nExplain (5 min). Rank the biggest misses by number of people. Where does radiation send too many people, and where too few? Why?\n\nAnd then: which model would you use in a country with no commuting data at all?"
+  },
+  {
+    "objectID": "index.html#data",
+    "href": "index.html#data",
+    "title": "Modelling human mobility",
+    "section": "Data and code",
+    "text": "Data and code\nCommuting between the 98 Danish municipalities in 2024: where people live and where they work. Source: Statistics Denmark, table PEND100. Distances are between municipality centres.\n\nflows.csv: origin, destination, number of commuters (also by sex)\nmunicipalities.csv: workers living there, jobs, coordinates of the centre\ndistances.csv: distance in km for every pair\nNotebook with all the code behind the playground: mobility_models.ipynb (or as a script: mobility_models.py)"
+  },
+  {
+    "objectID": "index.html#readings",
+    "href": "index.html#readings",
+    "title": "Modelling human mobility",
+    "section": "Readings",
+    "text": "Readings\n\nZipf, G. K. (1946). The P1P2/D hypothesis: on the intercity movement of persons. American Sociological Review, 11(6), 677–686.\nStouffer, S. A. (1940). Intervening opportunities: a theory relating mobility and distance. American Sociological Review, 5(6), 845–867.\nSimini, F., González, M. C., Maritan, A., & Barabási, A.-L. (2012). A universal model for mobility and migration patterns. Nature, 484, 96–100.\nLenormand, M., Bassolas, A., & Ramasco, J. J. (2016). Systematic comparison of trip distribution laws and models. Journal of Transport Geography, 51, 158–169. arXiv\nBarbosa, H., et al. (2018). Human mobility: models and applications. Physics Reports, 734, 1–74.\nSimini, F., Barlacchi, G., Luca, M., & Pappalardo, L. (2021). A Deep Gravity model for mobility flows generation. Nature Communications, 12, 6576.\nPappalardo, L., Manley, E., Sekara, V., & Alessandretti, L. (2023). Future directions in human mobility science. Nature Computational Science, 3, 588–600.\nHofman, J. M., et al. (2021). Integrating explanation and prediction in computational social science. Nature, 595, 181–188.\nShmueli, G. (2010). To explain or to predict? Statistical Science, 25(3), 289–310."
+  }
+]
