@@ -342,8 +342,8 @@ def misses(df, col, k=8):
     return too_few, too_many
 
 too_few, too_many = misses(df, &#x27;gravity&#x27;)
-print(&#x27;Gravity predicts far too few:&#x27;); display(too_few)
-print(&#x27;Gravity predicts far too many:&#x27;); display(too_many)
+print(&#x27;Gravity predicts far too few:&#x27;); print(too_few.to_string(index=False))
+print(&#x27;\nGravity predicts far too many:&#x27;); print(too_many.to_string(index=False))
 
 # %% [markdown]
 # ## Your turn

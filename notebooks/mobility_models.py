@@ -1,3 +1,17 @@
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.6
+#   kernelspec:
+#     display_name: Python 3
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
 # # Modelling commuting in Denmark: gravity vs radiation
 #
@@ -38,6 +52,7 @@ df = df.rename(columns={'distance_km': 'd', 'commuters': 'T'})
 print(len(df), 'pairs,', (df['T'] > 0).sum(), 'with at least one commuter,', df['T'].sum(), 'commuters')
 df[['origin', 'destination', 'T', 'm_i', 'm_j', 'd']].head()
 
+
 # %% [markdown]
 # ## 2. The score: common part of commuters (CPC)
 #
@@ -48,6 +63,7 @@ df[['origin', 'destination', 'T', 'm_i', 'm_j', 'd']].head()
 # %%
 def cpc(obs, pred):
     return 2 * np.minimum(obs, pred).sum() / (obs.sum() + pred.sum())
+
 
 # %% [markdown]
 # ## 3. Gravity model
@@ -144,6 +160,7 @@ for i in names:
 df['radiation'] = [rad[(o, d)] for o, d in zip(df.origin, df.destination)]
 print('Radiation: CPC =', round(cpc(df['T'], df.radiation), 3))
 
+
 # %% [markdown]
 # ## 5. Observed vs predicted
 #
@@ -174,6 +191,7 @@ for col, ax in zip(['zipf', 'gravity', 'gravity_exp', 'radiation'], axes.ravel()
     obs_vs_pred(df, col, ax)
 plt.tight_layout()
 
+
 # %% [markdown]
 # ## 6. Biggest misses, in number of people
 #
@@ -188,8 +206,8 @@ def misses(df, col, k=8):
     return too_few, too_many
 
 too_few, too_many = misses(df, 'gravity')
-print('Gravity predicts far too few:'); display(too_few)
-print('Gravity predicts far too many:'); display(too_many)
+print('Gravity predicts far too few:'); print(too_few.to_string(index=False))
+print('\nGravity predicts far too many:'); print(too_many.to_string(index=False))
 
 # %% [markdown]
 # ## Your turn
