@@ -304,6 +304,11 @@ T_{ij} = K \, \frac{m_i^{\alpha} \, m_j^{\beta}}{d_{ij}^{\gamma}}
 T_{ij} = K \, m_i^{\alpha} \, m_j^{\beta} \, e^{-d_{ij}/d_0}
 \]</span></p>
 <p><span class="math inline">\(m_i\)</span>: workers living in <span class="math inline">\(i\)</span> · <span class="math inline">\(m_j\)</span>: workers living in <span class="math inline">\(j\)</span> · <span class="math inline">\(d_{ij}\)</span>: distance · <span class="math inline">\(K\)</span>: chosen so that the total predicted equals the total observed. Zipf (1946) used <span class="math inline">\(\alpha = \beta = \gamma = 1\)</span>.</p>
+<p><strong>How good is a model?</strong> We use the common part of commuters: the share of commuters the model sends to the right place (1 is perfect, 0 is nothing right).</p>
+<p><span class="math display">\[
+\text{CPC} = \frac{2 \sum_{ij} \min(T_{ij}, \hat{T}_{ij})}{\sum_{ij} T_{ij} + \sum_{ij} \hat{T}_{ij}}
+\]</span></p>
+<p><span class="math inline">\(T_{ij}\)</span>: real commuters from <span class="math inline">\(i\)</span> to <span class="math inline">\(j\)</span> · <span class="math inline">\(\hat{T}_{ij}\)</span>: the model’s prediction.</p>
 <section id="exercise-1-fit-the-gravity-model-20-min" class="level3 card">
 <h3 class="anchored" data-anchor-id="exercise-1-fit-the-gravity-model-20-min">Exercise 1: fit the gravity model <span class="timing">20 min</span></h3>
 <ol type="1">

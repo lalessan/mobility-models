@@ -67,6 +67,10 @@ input[type=range] { width: 100%; accent-color: var(--crimson); }
 .bar { height: 6px; background: #fff; border-radius: 3px; overflow: hidden; margin-top: 6px; }
 .bar i { display: block; height: 100%; background: var(--crimson); width: 0; transition: width .2s; }
 .formula { font-size: 14px; color: var(--muted); grid-column: 1 / -1; }
+.frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; margin: 0 .35em; }
+.frac > span:first-child { border-bottom: 1.5px solid currentColor; padding: 0 .35em .15em; }
+.frac > span:last-child { padding: .15em .35em 0; }
+.eqblock { display: block; margin: .7rem 0; font-size: 1.15em; }
 .formula b { color: var(--ink); font-weight: 600; }
 
 .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
@@ -372,7 +376,9 @@ print(&#x27;Gravity predicts far too many:&#x27;); display(too_many)
       <section>
         <h2>How to read the page</h2>
         <ul>
-          <li><b>CPC</b> (common part of commuters) = 2 · Σ min(observed, predicted) / (Σ observed + Σ predicted): the share of commuters the model sends to the right place. 1 is perfect, 0 is nothing right.</li>
+          <li><b>CPC</b> (common part of commuters): the share of commuters the model sends to the right place. 1 is perfect, 0 is nothing right.
+            <span class="eq eqblock">CPC =<span class="frac"><span>2 Σ<sub>i,j</sub> min(T<sub>ij</sub>, T̂<sub>ij</sub>)</span><span>Σ<sub>i,j</sub> T<sub>ij</sub> + Σ<sub>i,j</sub> T̂<sub>ij</sub></span></span></span>
+            <i>T<sub>ij</sub></i> = observed commuters from <i>i</i> to <i>j</i>, <i>T̂<sub>ij</sub></i> = predicted. For each pair, min(observed, predicted) is the part the model gets right; the CPC adds this up over all pairs and divides by the average of the two totals. Example: 100 people commute to a place and the model predicts 70: 70 are right, 30 are missing.</li>
           <li><b>Observed vs predicted:</b> each grey dot is one pair with at least one commuter, on log axes. The solid line is a perfect prediction; the dashed lines are 10 times too many (above) and 10 times too few (below). The orange line is the median prediction for flows of a given size: where it leaves the solid line, the model is systematically off. Pairs with zero commuters cannot be shown on a log scale.</li>
           <li><b>Map:</b> click a municipality to see where its residents work: teal lines are the real flows, crimson lines the model’s, side by side. Only its <b>10 largest destinations</b> are shown (largest observed or predicted flow), and the map zooms to them; “Whole Denmark” zooms out.</li>
           <li><b>Model / observed</b> labels: <span class="chip low">0.3×</span> far too few (below 0.5×), <span class="chip ok">1.2×</span> close (0.5× to 2×), <span class="chip high">3.0×</span> far too many (above 2×).</li>
