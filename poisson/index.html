@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the best fit works · Modelling human mobility</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #58355E; --muted: #7A6A7E; --crimson: #EC0B43; --teal: #0F8B8D; --orange: #EC9A29;
+  --lilac: #F3EFF4; --line: #E3DAE5;
+  --font: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.5; }
+main { max-width: 1080px; margin: 0 auto; padding: 28px 22px 60px; }
+a { color: var(--crimson); }
+h1 { font-size: 34px; margin: 0 0 6px; }
+h2 { font-size: 24px; margin: 40px 0 8px; }
+.sub { color: var(--muted); }
+p { max-width: 760px; }
+.panel { background: var(--lilac); border-radius: 14px; padding: 18px; margin: 14px 0; }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; align-items: start; }
+label { font-weight: 600; display: flex; justify-content: space-between; gap: 10px; }
+label output { font-variant-numeric: tabular-nums; color: var(--crimson); }
+input[type=range] { width: 100%; accent-color: var(--ink); }
+canvas { width: 100%; background: #fff; border-radius: 10px; display: block; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+button { font: inherit; font-weight: 600; border: 2px solid var(--ink); background: #fff; color: var(--ink); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+button.primary { background: var(--crimson); border-color: var(--crimson); color: #fff; }
+.stats { display: flex; flex-wrap: wrap; gap: 28px; margin: 10px 0 2px; }
+.stat b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 14px; }
+.eq { font-family: "STIX Two Math", "Cambria Math", "Times New Roman", serif; font-size: 1.15em; white-space: nowrap; }
+.note { color: var(--muted); font-size: 14px; }
+table { border-collapse: collapse; margin: 8px 0; }
+td, th { padding: 6px 14px; text-align: left; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+th { font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 .4rem;font-size:.9rem"><a href="../" style="color:#8A7A8D">← Lecture page</a> · <a href="../playground/" style="color:#8A7A8D">Playground</a></p>
+<h1>How the best fit works</h1>
+<p class="sub">Modelling human mobility · DIS Copenhagen · What the <b>Best fit</b> button in the playground does, step by step. Same Danish data (Statistics Denmark, PEND100, 2024).</p>
+
+<h2>1. Every flow is a count</h2>
+<p>For each pair of municipalities, the gravity model gives an <b>expected</b> number of commuters, <span class="eq">μ<sub>ij</sub> = K m<sub>i</sub><sup>α</sup> m<sub>j</sub><sup>β</sup> d<sub>ij</sub><sup>−γ</sup></span>. The real number will not be exactly μ: if many people each decide on their own, the count scatters around μ following a <b>Poisson distribution</b>. Its spread grows with μ (the variance equals the mean): an error of 5 people is a lot when you expect 10, and nothing when you expect 10,000.</p>
+<div class="panel row">
+  <div>
+    <label>Expected number, μ <output id="oMu"></output></label>
+    <input id="mu" type="range" min="1" max="40" step="0.5" value="8">
+    <label style="margin-top:10px">Observed number, T <output id="oK"></output></label>
+    <input id="k" type="range" min="0" max="60" step="1" value="12">
+    <p class="note">The bars show how likely each count is when the model expects μ. The red bar is what we actually observed: its height is the <b>likelihood</b> of this pair. Move μ to make the red bar as tall as possible: you will land on μ = T.</p>
+  </div>
+  <div><canvas id="cPois" width="640" height="300"></canvas></div>
+</div>
+
+<h2>2. Best fit = the parameters that make the data most likely</h2>
+<p>The likelihood of the whole model is the product of the red bars for all 9,506 pairs; we work with its logarithm, which turns the product into a sum. <b>Best fit</b> picks the α, β, γ that make this log-likelihood as high as possible (K is then set so that the total matches). Each curve below shows the log-likelihood as you vary one parameter while keeping the other two where they are. Move the sliders: the dot climbs to the top of its curve when that parameter is at its best value.</p>
+<div class="panel">
+  <div class="row">
+    <div><label>α (size of origin) <output id="oA"></output></label><input id="a" type="range" min="0" max="2" step="0.01" value="1"><canvas id="cA" width="420" height="220"></canvas></div>
+    <div><label>β (size of destination) <output id="oB"></output></label><input id="b" type="range" min="0" max="2" step="0.01" value="1"><canvas id="cB" width="420" height="220"></canvas></div>
+    <div><label>γ (distance) <output id="oG"></output></label><input id="g" type="range" min="0" max="3" step="0.01" value="1"><canvas id="cG" width="420" height="220"></canvas></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="sLL">–</b><span>log-likelihood, compared with the best fit (0 = best)</span></div>
+    <div class="stat"><b id="sCPC">–</b><span>CPC (common part of commuters)</span></div>
+    <div class="stat"><b id="sIt">–</b><span>fitting step</span></div>
+  </div>
+  <div class="btns">
+    <button id="bZipf">Zipf: α = β = γ = 1</button>
+    <button id="bOLS">Least squares on logs</button>
+    <button id="bRun" class="primary">Run the fit, step by step</button>
+  </div>
+  <p class="note">"Run the fit" starts from Zipf and uses the standard algorithm for Poisson regression (iteratively reweighted least squares). Each step solves a weighted regression in which big expected flows get big weights. It usually lands on the best values in five or six steps.</p>
+</div>
+
+<h2>3. Why not a straight line through the logs?</h2>
+<p>Taking logs turns the gravity model into a linear regression, <span class="eq">log T<sub>ij</sub> = log K + α log m<sub>i</sub> + β log m<sub>j</sub> − γ log d<sub>ij</sub></span>, so it is tempting to fit it with ordinary least squares. On these data that goes badly:</p>
+<table>
+  <tr><th></th><th>α</th><th>β</th><th>γ</th><th>CPC</th></tr>
+  <tr><td>Least squares on logs</td><td>0.88</td><td>1.03</td><td>1.79</td><td>0.43</td></tr>
+  <tr><td>Zipf (no fitting)</td><td>1</td><td>1</td><td>1</td><td>0.63</td></tr>
+  <tr><td>Poisson regression</td><td id="tA">–</td><td id="tB">–</td><td id="tG">–</td><td id="tC">–</td></tr>
+</table>
+<p>Two reasons. <b>Zeros:</b> 1,079 pairs have no commuters at all, and log 0 does not exist, so least squares has to drop them. <b>Weights:</b> on a log scale, being off by a factor of two counts the same for 6 vs 3 commuters as for 6,000 vs 3,000. Half of all pairs have fewer than 10 commuters, so these tiny flows dominate the fit, and the big flows, where most people are, are fitted badly. The Poisson likelihood keeps the zeros and lets each pair count according to how many people it involves. Press <b>Least squares on logs</b> above to see how far down the curves it sits.</p>
+<p class="note">Further reading: Silva &amp; Tenreyro (2006), "The log of gravity", Review of Economics and Statistics, which made this argument for trade flows between countries. The notebook on the lecture page does the same fit with <code>statsmodels</code>.</p>
+</main>
+
+<script>
+(async function () {
+  const data = await fetch('../playground/data.json').then(r => r.json());
+  const mun = data.municipalities, n = mun.length;
+  const W = mun.map(m => m.workers), J = mun.map(m => m.jobs);
+  const R = 6371.0088, rad = Math.PI / 180;
+  const obs = new Float64Array(n * n);
+  for (const [i, j, c] of data.flows) obs[i * n + j] = c;
+  const LA = [], LB = [], LD = [], T = [];
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    if (i === j) continue;
+    const p1 = mun[i].lat * rad, p2 = mun[j].lat * rad, dl = (mun[j].lon - mun[i].lon) * rad;
+    const h = Math.sin((p2 - p1) / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+    LA.push(Math.log(W[i])); LB.push(Math.log(J[j])); LD.push(Math.log(2 * R * Math.asin(Math.sqrt(h)))); T.push(obs[i * n + j]);
+  }
+  const N = T.length; let Ttot = 0; for (const t of T) Ttot += t;
+  let sTA = 0, sTB = 0, sTD = 0; for (let k = 0; k < N; k++) { sTA += T[k] * LA[k]; sTB += T[k] * LB[k]; sTD += T[k] * LD[k]; }
+  // log-likelihood with K at its optimum (constants dropped)
+  function LL(a, b, g) {
+    let m = -Infinity; const e = new Float64Array(N);
+    for (let k = 0; k < N; k++) { e[k] = a * LA[k] + b * LB[k] - g * LD[k]; if (e[k] > m) m = e[k]; }
+    let s = 0; for (let k = 0; k < N; k++) s += Math.exp(e[k] - m);
+    return a * sTA + b * sTB - g * sTD - Ttot * (m + Math.log(s));
+  }
+  function CPC(a, b, g) {
+    const e = new Float64Array(N); let s = 0;
+    for (let k = 0; k < N; k++) { e[k] = Math.exp(a * LA[k] + b * LB[k] - g * LD[k]); s += e[k]; }
+    const K = Ttot / s; let mn = 0; for (let k = 0; k < N; k++) mn += Math.min(T[k], K * e[k]);
+    return mn / Ttot;
+  }
+  // IRLS, returning every step
+  function irls(start) {
+    let b = [0, ...start]; const path = [];
+    { let s = 0; for (let k = 0; k < N; k++) s += Math.exp(b[1] * LA[k] + b[2] * LB[k] - b[3] * LD[k]); b[0] = Math.log(Ttot / s); }
+    for (let it = 0; it < 30; it++) {
+      const A = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]], v = [0,0,0,0];
+      for (let k = 0; k < N; k++) {
+        const x = [1, LA[k], LB[k], -LD[k]];
+        const eta = b[0] + b[1] * x[1] + b[2] * x[2] + b[3] * x[3], mu = Math.exp(eta), z = eta + (T[k] - mu) / mu;
+        for (let p = 0; p < 4; p++) { v[p] += mu * x[p] * z; for (let q = 0; q < 4; q++) A[p][q] += mu * x[p] * x[q]; }
+      }
+      const M = A.map((r, i) => [...r, v[i]]);
+      for (let c = 0; c < 4; c++) {
+        let p = c; for (let r = c + 1; r < 4; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+        [M[c], M[p]] = [M[p], M[c]];
+        for (let r = 0; r < 4; r++) if (r !== c) { const f = M[r][c] / M[c][c]; for (let q = c; q < 5; q++) M[r][q] -= f * M[c][q]; }
+      }
+      const nb = M.map((r, i) => r[4] / r[i]);
+      const diff = Math.max(...nb.map((t, p) => Math.abs(t - b[p])));
+      b = nb; path.push([b[1], b[2], b[3]]);
+      if (diff < 1e-6) break;
+    }
+    return path;
+  }
+  const path = irls([1, 1, 1]);
+  const BEST = path[path.length - 1];
+  const LLbest = LL(...BEST);
+  document.getElementById('tA').textContent = BEST[0].toFixed(2);
+  document.getElementById('tB').textContent = BEST[1].toFixed(2);
+  document.getElementById('tG').textContent = BEST[2].toFixed(2);
+  document.getElementById('tC').textContent = CPC(...BEST).toFixed(2);
+
+  // ---------- drawing helpers ----------
+  const css = getComputedStyle(document.documentElement);
+  const INK = '#58355E', CR = '#EC0B43', TE = '#0F8B8D', MU = '#8A7A8D', LI = '#E3DAE5';
+  function axes(ctx, w, h, pad) { ctx.clearRect(0, 0, w, h); ctx.strokeStyle = LI; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, h - pad.b); ctx.lineTo(w - pad.r, h - pad.b); ctx.stroke(); }
+  // ---------- section 1: Poisson bars ----------
+  const cP = document.getElementById('cPois'), xP = cP.getContext('2d');
+  function logPois(k, mu) { let lf = 0; for (let i = 2; i <= k; i++) lf += Math.log(i); return k * Math.log(mu) - mu - lf; }
+  function drawPois() {
+    const mu = +document.getElementById('mu').value, K = +document.getElementById('k').value;
+    document.getElementById('oMu').textContent = mu; document.getElementById('oK').textContent = K;
+    const w = cP.width, h = cP.height, pad = { l: 20, r: 12, t: 30, b: 34 };
+    axes(xP, w, h, pad);
+    const kmax = 60, ps = []; for (let k = 0; k <= kmax; k++) ps.push(Math.exp(logPois(k, mu)));
+    const pmax = Math.max(...ps) * 1.15, bw = (w - pad.l - pad.r) / (kmax + 1);
+    ps.forEach((p, k) => {
+      const bh = (h - pad.t - pad.b) * Math.min(p / pmax, 1);
+      xP.fillStyle = k === K ? CR : (Math.abs(k - mu) < 0.5 ? INK : '#C9B8CC');
+      xP.fillRect(pad.l + k * bw + 1, h - pad.b - bh, bw - 2, bh);
+    });
+    xP.fillStyle = MU; xP.font = '13px Bricolage Grotesque, Arial'; xP.textAlign = 'center';
+    for (let k = 0; k <= kmax; k += 10) xP.fillText(k, pad.l + (k + 0.5) * bw, h - pad.b + 18);
+    xP.textAlign = 'left'; xP.fillStyle = CR; xP.font = '600 14px Bricolage Grotesque, Arial';
+    xP.fillText(`Likelihood of observing ${K}: ${(ps[K] * 100).toFixed(1)}%`, pad.l, 20);
+  }
+  document.getElementById('mu').addEventListener('input', drawPois);
+  document.getElementById('k').addEventListener('input', drawPois);
+  drawPois();
+
+  // ---------- section 2: profile curves ----------
+  const sl = { a: document.getElementById('a'), b: document.getElementById('b'), g: document.getElementById('g') };
+  const ranges = { a: [0, 2], b: [0, 2], g: [0, 3] };
+  const canv = { a: document.getElementById('cA'), b: document.getElementById('cB'), g: document.getElementById('cG') };
+  function profile(key, cur) {
+    const [lo, hi] = ranges[key], xs = [], ys = [];
+    for (let s = 0; s <= 48; s++) {
+      const v = lo + (hi - lo) * s / 48, p = { ...cur, [key]: v };
+      xs.push(v); ys.push(LL(p.a, p.b, p.g) - LLbest);
+    }
+    return [xs, ys];
+  }
+  const floor = -2.5e6;
+  function drawProfile(key, cur, here) {
+    const c = canv[key], x = c.getContext('2d'), w = c.width, h = c.height, pad = { l: 14, r: 14, t: 16, b: 30 };
+    axes(x, w, h, pad);
+    const [xs, ys] = profile(key, cur), [lo, hi] = ranges[key];
+    const X = v => pad.l + (v - lo) / (hi - lo) * (w - pad.l - pad.r);
+    const Y = v => pad.t + (Math.min(0, -Math.sqrt(-Math.max(v, floor))) / -Math.sqrt(-floor)) * -(h - pad.t - pad.b) * -1;
+    // y: square-root scale so the peak is visible; 0 (best) at the top
+    const Ys = v => pad.t + Math.sqrt(Math.min(-v, -floor) / -floor) * (h - pad.t - pad.b);
+    x.strokeStyle = INK; x.lineWidth = 2.5; x.beginPath();
+    xs.forEach((v, i) => { const px = X(v), py = Ys(ys[i]); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke();
+    x.setLineDash([4, 4]); x.strokeStyle = TE; x.lineWidth = 1.5; x.beginPath(); x.moveTo(X(BEST[{ a: 0, b: 1, g: 2 }[key]]), pad.t); x.lineTo(X(BEST[{ a: 0, b: 1, g: 2 }[key]]), h - pad.b); x.stroke(); x.setLineDash([]);
+    x.fillStyle = CR; x.beginPath(); x.arc(X(cur[key]), Ys(here), 7, 0, 2 * Math.PI); x.fill();
+    x.fillStyle = MU; x.font = '13px Bricolage Grotesque, Arial'; x.textAlign = 'center';
+    for (let v = lo; v <= hi + 1e-9; v += 0.5) x.fillText(v.toFixed(1), X(v), h - pad.b + 18);
+    x.textAlign = 'left'; x.fillStyle = TE; x.fillText('best', X(BEST[{ a: 0, b: 1, g: 2 }[key]]) + 4, pad.t + 10);
+    x.fillStyle = MU; x.textAlign = 'right'; x.fillText('higher = more likely', w - pad.r, pad.t + 10);
+  }
+  let step = '–';
+  function update() {
+    const cur = { a: +sl.a.value, b: +sl.b.value, g: +sl.g.value };
+    document.getElementById('oA').textContent = cur.a.toFixed(2);
+    document.getElementById('oB').textContent = cur.b.toFixed(2);
+    document.getElementById('oG').textContent = cur.g.toFixed(2);
+    const here = LL(cur.a, cur.b, cur.g) - LLbest;
+    for (const k of ['a', 'b', 'g']) drawProfile(k, cur, here);
+    document.getElementById('sLL').textContent = here > -50 ? '≈ 0' : Math.round(here).toLocaleString('en-GB');
+    document.getElementById('sCPC').textContent = CPC(cur.a, cur.b, cur.g).toFixed(3);
+    document.getElementById('sIt').textContent = step;
+  }
+  function set(a, b, g) { sl.a.value = a; sl.b.value = b; sl.g.value = g; update(); }
+  for (const k of ['a', 'b', 'g']) sl[k].addEventListener('input', () => { step = '–'; update(); });
+  document.getElementById('bZipf').addEventListener('click', () => { step = '–'; set(1, 1, 1); });
+  document.getElementById('bOLS').addEventListener('click', () => { step = '–'; set(0.88, 1.03, 1.79); });
+  let timer = null;
+  document.getElementById('bRun').addEventListener('click', () => {
+    clearInterval(timer); step = 'start'; set(1, 1, 1); let i = 0;
+    timer = setInterval(() => {
+      if (i >= path.length) { clearInterval(timer); step = `done (${path.length})`; update(); return; }
+      step = `${i + 1} of ${path.length}`; set(...path[i].map(v => +v.toFixed(3))); i++;
+    }, 900);
+  });
+  update();
+  window.__poisson = { best: BEST, steps: path.length, cpcBest: CPC(...BEST), llOLS: LL(0.88, 1.03, 1.79) - LLbest };
+})();
+</script>
+</body>
+</html>

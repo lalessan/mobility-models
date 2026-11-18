@@ -372,6 +372,7 @@ print(&#x27;\nGravity predicts far too many:&#x27;); print(too_many.to_string(in
         <p>A <b>Poisson regression</b> treats each flow as a count: <i>T<sub>ij</sub></i> is drawn from a Poisson distribution whose mean follows the formula above. It picks the α, β, γ that make the observed counts most likely. Zeros are no problem, and since a Poisson count’s variance equals its mean, big flows weigh more. The predictions also add up exactly to the real total.</p>
         <p>On this data: the log regression gives α = 0.88, β = 1.03, γ = 1.79 and a CPC of only 0.43. The Poisson regression gives α = 0.69, β = 0.80, γ = 1.08 and a CPC of 0.64. Note that γ ≈ 1: Zipf’s 1/<i>D</i> from 1946.</p>
         <p>With the exponential distance term, the same Poisson regression (now on −<i>d</i> instead of −log <i>d</i>) gives α = 0.81, β = 0.91, d₀ = 34 km and a CPC of 0.71: the best of the three models on this page.</p>
+        <p><b><a href="../poisson/">See the fit step by step, with an interactive demo →</a></b></p>
       </section>
       <section>
         <h2>How to read the page</h2>
